@@ -1,12 +1,14 @@
 from dateparser import parse
 from datetime import datetime
 import re
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, Any
 import pytz
+from functools import lru_cache
 
 class TaskParser:
-  def __init__(self, timezone: str = 'Europe/Paris'):
+  def __init__(self, timezone: str = 'Europe/Paris', cache_size: int = 1000):
       self.timezone = pytz.timezone(timezone)
+      self._cache_size = cache_size
       
   def extract_url(self, text: str) -> Optional[str]:
       url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\$\$,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
@@ -53,7 +55,10 @@ class TaskParser:
           
       return None, None
 
-  def parse_task(self, text: str) -> Dict:
+  @lru_cache(maxsize=1000)
+  def parse_task(self, text: str) -> Dict[str, Any]:
+      if not text or not isinstance(text, str):
+          raise ValueError("Input text must be a non-empty string")
       # Remove URL from text for better date parsing
       url = self.extract_url(text)
       text_without_url = re.sub(r'http[s]?://\S+', '', text).strip()
